@@ -1,6 +1,6 @@
 #include<iostream>
-#include <map>
-#include <forward_list>
+#include<map>
+#include<forward_list>
 #include<string.h>
 #include<arpa/inet.h>
 #include<sys/socket.h>
@@ -33,13 +33,12 @@ public:
 Error(string error){
 this->error = error;
 }
-    bool hasError(){
-
-        return this->error.length()>0;
-    }
-    string getError(){
-        return this->error;
-    }
+bool hasError(){
+return this->error.length()>0;
+}
+string getError(){
+return this->error;
+}
 };
 
 class Request{
@@ -99,7 +98,7 @@ void setStaticResourcesFolder(string staticResourcesFolder){
         this->staticResourcesFolder = staticResourcesFolder;
     }
 }
-void get(string url, void (*callBack)(Request &request, Response &response)){
+void get(string url, void (*callBack)(Request &, Response &)){
     if(Validator::isValidURLFormat(url)){
         urlMappings.insert(pair<string, void (*)(Request &, Response &)>(url,callBack));
     }
@@ -128,8 +127,8 @@ void listen(int portNumber, void (*callBack)(Error &)){
 	callBack(error);
 	return;
     }
-    successCode = ::listen(serverSocketDescriptor,10);
-    if(successCode<0){
+    successCode = ::listen(serverSocketDescriptor,10); // for now queue size 10
+    if(successCode<0){  
     close(serverSocketDescriptor);
     Error error("Unable to accept client connections");
     callBack(error);
@@ -139,7 +138,7 @@ void listen(int portNumber, void (*callBack)(Error &)){
     Error error("");
     callBack(error);
     struct sockaddr_in clientSocketInformation;
-    socklen_t  len = sizeof(clientSocketInformation);
+    socklen_t len = sizeof(clientSocketInformation);
     while(1){
     	 int clientSocketDescriptor = accept(serverSocketDescriptor, (struct sockaddr*)&clientSocketInformation, &len);
 	 if(clientSocketDescriptor<0){
@@ -147,19 +146,21 @@ void listen(int portNumber, void (*callBack)(Error &)){
 	 }
 	 // to read the data from incoming request we will use receive function it tells how many bytes it extracted
 	 requestLength = recv(clientSocketDescriptor, requestBuffer, sizeof(requestBuffer),0);
-	 if(requestLength<0){
+	 cout<<"THIS IS FOR DEBUGGING:"<<requestLength<<endl;
+	 if(requestLength>0){
 	 	int x;
 		for(x = 0; x<requestLength;x++) printf("%c", requestBuffer[x]);
 		const char* response = 
-		"HTTP/1.1 200 ok\r\n"
+		"HTTP/1.1 200 OK\r\n"
 		"Connection: close\r\n"
 		"Content-Type: text/html\r\n"
 		"Content-Length: 100\r\n\r\n"
 		"<html><head><title>How are you</title></head>"
-		"<body> <h1> Hi this is bro server </h1> </html>";	
+		"<body><h1>Hi this is bro server</h1></html>";	
 	 	send(clientSocketDescriptor,response, strlen(response),0);
 	 }
-    }
+	 //lot of code to be followed here later on
+    } //infinite loop ends
 } 
 };
 
@@ -210,14 +211,13 @@ int main(){
         response<<html;
     }
 );
-    bro.listen(7070,[](Error &error){
+    bro.listen(6060,[](Error &error){
         if(error.hasError())
         {
             cout<<error.getError();
             return;
         }
-        cout<<"Bro Http Server is ready to Listen on Port 7070"<<endl;
+        cout<<"Bro Http Server is ready to Listen on Port 6060"<<endl;
     });
     return 0;
-
 }
