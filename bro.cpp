@@ -2,9 +2,16 @@
 #include<map>
 #include<forward_list>
 #include<string.h>
+#include<unistd.h>
+#ifdef _WIN32
+#include<windows.h>
+#endif
+
+#ifdef linux
 #include<arpa/inet.h>
 #include<sys/socket.h>
-#include<unistd.h>
+#endif 
+
 using namespace std;
 // Amit the bro programmer
 class Validator{
@@ -104,12 +111,20 @@ void get(string url, void (*callBack)(Request &, Response &)){
     }
 }
 void listen(int portNumber, void (*callBack)(Error &)){
-    // do nothing right now
+#ifdef _WIN32
+WSAData wsaData;
+WORD ver;
+ver = MAKEWORD(1,1);
+WSAStartup(ver, &wsaData);
+#endif
     int serverSocketDescriptor; 
     char requestBuffer[4096];
     int requestLength; 
     serverSocketDescriptor = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if(serverSocketDescriptor<0){
+#ifdef _WIN32
+WSACleanup();
+#endif
 	    Error error("Unable to create Socket");
 	    callBack(error);
 	    return;
@@ -120,6 +135,9 @@ void listen(int portNumber, void (*callBack)(Error &)){
     serverSocketInformation.sin_addr.s_addr = htonl(INADDR_ANY);
     int successCode = bind(serverSocketDescriptor, (struct sockaddr*) &serverSocketInformation, sizeof(serverSocketInformation));
     if(successCode<0){
+#ifdef _WIN32
+WSACleanup();
+#endif
     	close(serverSocketDescriptor);
 	char a[101];
 	sprintf(a,"Unable to bind socket to port : %d",portNumber);
@@ -128,7 +146,10 @@ void listen(int portNumber, void (*callBack)(Error &)){
 	return;
     }
     successCode = ::listen(serverSocketDescriptor,10); // for now queue size 10
-    if(successCode<0){  
+    if(successCode<0){
+#ifdef _WIN32
+WSACleanup();
+#endif  
     close(serverSocketDescriptor);
     Error error("Unable to accept client connections");
     callBack(error);
@@ -138,7 +159,12 @@ void listen(int portNumber, void (*callBack)(Error &)){
     Error error("");
     callBack(error);
     struct sockaddr_in clientSocketInformation;
+#ifdef linux
     socklen_t len = sizeof(clientSocketInformation);
+#endif
+#ifdef _WIN32 
+	int len = sizeof(clientSocketInformation);
+#endif
     while(1){
     	 int clientSocketDescriptor = accept(serverSocketDescriptor, (struct sockaddr*)&clientSocketInformation, &len);
 	 if(clientSocketDescriptor<0){
@@ -161,6 +187,10 @@ void listen(int portNumber, void (*callBack)(Error &)){
 	 }
 	 //lot of code to be followed here later on
     } //infinite loop ends
+	
+#ifdef _WIN32
+WSACleanup();
+#endif
 } 
 };
 
